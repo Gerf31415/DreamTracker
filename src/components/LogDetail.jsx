@@ -91,7 +91,9 @@ export default function LogDetail() {
         {/* Dreams */}
         <div className="card md:col-span-2">
           <h2 className="font-semibold text-white/70 mb-4">
-            Dreams <span className="ml-2 text-xs bg-dream-900 text-dream-300 border border-dream-700 px-2 py-0.5 rounded-full">{log.stats.count}</span>
+            Dreams
+            <span className="ml-2 text-xs bg-dream-900 text-dream-300 border border-dream-700 px-2 py-0.5 rounded-full">{log.stats.count}</span>
+            <span className="ml-2 text-xs text-white/30">{log.stats.wordCount} words</span>
           </h2>
           <div className="space-y-4">
             {log.dreams.map((dream, i) => (

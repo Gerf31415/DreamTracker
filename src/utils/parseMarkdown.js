@@ -30,13 +30,25 @@ export function parseDreamLog(text, filename = '') {
   const tagsSectionIdx = lines.findIndex(l => l.trim() === 'Tags');
 
   // -- Parse dreams --
+  // Group lines into blank-line-separated blocks; first line = title, rest = description.
   const dreams = [];
   if (dreamsSectionIdx !== -1 && metaSectionIdx !== -1) {
-    const dreamLines = lines.slice(dreamsSectionIdx + 1, metaSectionIdx).filter(nonEmpty);
-    for (let i = 0; i < dreamLines.length; i += 2) {
+    const dreamLines = lines.slice(dreamsSectionIdx + 1, metaSectionIdx);
+    const blocks = [];
+    let current = [];
+    for (const line of dreamLines) {
+      if (line.trim() === '') {
+        if (current.length > 0) { blocks.push(current); current = []; }
+      } else {
+        current.push(line.trim());
+      }
+    }
+    if (current.length > 0) blocks.push(current);
+
+    for (const block of blocks) {
       dreams.push({
-        title: dreamLines[i]?.trim() ?? '',
-        description: dreamLines[i + 1]?.trim() ?? '',
+        title: block[0] ?? '',
+        description: block.slice(1).join('\n').trim(),
       });
     }
   }
@@ -132,6 +144,9 @@ export function parseDreamLog(text, filename = '') {
   // Compute averages
   const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
+  const countWords = (str) => str.trim() === '' ? 0 : str.trim().split(/\s+/).length;
+  const wordCount = dreams.reduce((sum, d) => sum + countWords(d.title) + countWords(d.description), 0);
+
   return {
     filename,
     dreams,
@@ -144,6 +159,7 @@ export function parseDreamLog(text, filename = '') {
       avgLucidity: avg(metadata.lucidity),
       avgControl: avg(metadata.control),
       avgOverall: avg(metadata.overall),
+      wordCount,
     },
     date: metadata.date,
   };
@@ -172,6 +188,7 @@ export function aggregateLogs(logs) {
     control: log.stats.avgControl != null ? +log.stats.avgControl.toFixed(2) : null,
     overall: log.stats.avgOverall != null ? +log.stats.avgOverall.toFixed(2) : null,
     duration: log.stats.avgDuration != null ? +log.stats.avgDuration.toFixed(2) : null,
+    wordCount: log.stats.wordCount,
     filename: log.filename,
   }));
 
@@ -199,6 +216,7 @@ export function aggregateLogs(logs) {
   const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
   const totalDreams = sorted.reduce((s, l) => s + l.stats.count, 0);
+  const totalWordCount = sorted.reduce((s, l) => s + l.stats.wordCount, 0);
 
   const radarData = [
     { metric: 'Vividness', value: +avg(allVividness).toFixed(2), max: 10 },
@@ -221,6 +239,8 @@ export function aggregateLogs(logs) {
       avgControl: +avg(allControl).toFixed(2),
       avgOverall: +avg(allOverall).toFixed(2),
       avgDuration: +avg(allDuration).toFixed(2),
+      totalWordCount,
+      avgWordCount: sorted.length ? Math.round(totalWordCount / sorted.length) : 0,
     },
   };
 }

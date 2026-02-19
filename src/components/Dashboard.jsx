@@ -56,13 +56,15 @@ export default function Dashboard() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <StatCard label="Total Logs" value={totals.logs} />
         <StatCard label="Total Dreams" value={totals.dreams} />
         <StatCard label="Avg / Log" value={totals.avgDreamsPerLog} />
         <StatCard label="Avg Overall" value={totals.avgOverall?.toFixed(1)} sub="out of 10" />
         <StatCard label="Avg Vividness" value={totals.avgVividness?.toFixed(1)} sub="out of 10" />
         <StatCard label="Avg Lucidity" value={totals.avgLucidity?.toFixed(1)} sub="out of 10" />
+        <StatCard label="Total Words" value={totals.totalWordCount} sub="in dreams" />
+        <StatCard label="Avg Words/Log" value={totals.avgWordCount} sub="in dreams" />
       </div>
 
       {/* Trend chart */}
@@ -121,7 +123,7 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left">
-                  {['Date', 'Dreams', 'Overall', 'Vividness', 'Lucidity', 'Control', 'Duration'].map(h => (
+                  {['Date', 'Dreams', 'Words', 'Overall', 'Vividness', 'Lucidity', 'Control', 'Duration'].map(h => (
                     <th key={h} className="pb-2 pr-4 text-xs font-semibold text-white/40 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -131,6 +133,7 @@ export default function Dashboard() {
                   <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="py-2.5 pr-4 text-white/70">{row.date}</td>
                     <td className="py-2.5 pr-4 text-white">{row.count}</td>
+                    <td className="py-2.5 pr-4 text-white/70">{row.wordCount ?? '—'}</td>
                     <td className="py-2.5 pr-4">
                       <span className="font-semibold" style={{ color: scoreColor(row.overall) }}>
                         {row.overall?.toFixed(1) ?? '—'}
