@@ -24,10 +24,11 @@ export function parseDreamLog(text, filename = '') {
   const lines = text.split('\n').map(l => l.trimEnd());
   const nonEmpty = (l) => l.trim() !== '';
 
-  // Find section indices
-  const dreamsSectionIdx = lines.findIndex(l => l.trim() === 'Dreams');
-  const metaSectionIdx = lines.findIndex(l => l.trim() === 'Metadata');
-  const tagsSectionIdx = lines.findIndex(l => l.trim() === 'Tags');
+  // Find section indices — headings may be bare or markdown-prefixed (e.g. ##### Dreams)
+  const matchSection = (name) => (l) => l.trim().replace(/^#{1,6}\s*/, '') === name;
+  const dreamsSectionIdx = lines.findIndex(matchSection('Dreams'));
+  const metaSectionIdx = lines.findIndex(matchSection('Metadata'));
+  const tagsSectionIdx = lines.findIndex(matchSection('Tags'));
 
   // -- Parse dreams --
   // Group lines into blank-line-separated blocks; first line = title, rest = description.
@@ -72,47 +73,32 @@ export function parseDreamLog(text, filename = '') {
     const metaEnd = tagsSectionIdx !== -1 ? tagsSectionIdx : lines.length;
     const metaLines = lines.slice(metaSectionIdx + 1, metaEnd);
 
-    const datePattern = /^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})/;
+    // Support both YYYY-MM-DD and M-D-YYYY date formats
+    const datePatternISO = /^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})/;
+    const datePatternMDY = /^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})/;
 
-    let inModifiers = false;
+    const parseDate = (trimmed) => {
+      let m = trimmed.match(datePatternISO);
+      if (m) {
+        return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10), parseInt(m[4], 10), parseInt(m[5], 10));
+      }
+      m = trimmed.match(datePatternMDY);
+      if (m) {
+        return new Date(parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10));
+      }
+      return null;
+    };
+
+    const splitMods = (str) => str.split(',').map(s => s.trim()).filter(Boolean);
 
     for (const line of metaLines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
 
-      if (trimmed.toLowerCase() === 'modifiers:') {
-        inModifiers = true;
-        continue;
-      }
-
-      if (datePattern.test(trimmed)) {
+      // Date line
+      if (datePatternISO.test(trimmed) || datePatternMDY.test(trimmed)) {
         metadata.rawDate = trimmed;
-        const m = trimmed.match(datePattern);
-        // M-D-YYYY H:MM
-        const month = parseInt(m[1], 10) - 1;
-        const day = parseInt(m[2], 10);
-        const year = parseInt(m[3], 10);
-        const hour = parseInt(m[4], 10);
-        const minute = parseInt(m[5], 10);
-        metadata.date = new Date(year, month, day, hour, minute);
-        inModifiers = false;
-        continue;
-      }
-
-      if (inModifiers) {
-        if (/^external:/i.test(trimmed)) {
-          metadata.modifiers.external = trimmed
-            .replace(/^external:/i, '')
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
-        } else if (/^internal:/i.test(trimmed)) {
-          metadata.modifiers.internal = trimmed
-            .replace(/^internal:/i, '')
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
-        }
+        metadata.date = parseDate(trimmed);
         continue;
       }
 
@@ -131,6 +117,10 @@ export function parseDreamLog(text, filename = '') {
         case 'lucidity': metadata.lucidity = vals; break;
         case 'control': metadata.control = vals; break;
         case 'overall': metadata.overall = vals; break;
+        // Modifiers: inline values are treated as internal modifiers
+        case 'modifiers': if (valStr) metadata.modifiers.internal = splitMods(valStr); break;
+        case 'external': metadata.modifiers.external = splitMods(valStr); break;
+        case 'internal': metadata.modifiers.internal = splitMods(valStr); break;
       }
     }
   }
