@@ -135,6 +135,7 @@ export default function LogDetail() {
             <div className="grid grid-cols-2 gap-3">
               {[
                 ['Overall', log.stats.avgOverall, METRIC_COLORS.overall],
+                ['Total Quality', log.stats.totalQuality, '#e879f9'],
                 ['Vividness', log.stats.avgVividness, METRIC_COLORS.vividness],
                 ['Lucidity', log.stats.avgLucidity, METRIC_COLORS.lucidity],
                 ['Control', log.stats.avgControl, METRIC_COLORS.control],

@@ -2,11 +2,11 @@
  * Parses a dream log markdown file into a structured object.
  *
  * Expected format:
- * Dreams
+ * ##### Dreams
  * [DreamTitle]
  * [DreamDescription]
  * ...
- * Metadata
+ * ##### Metadata
  * Count: N
  * Duration: v1, v2, ...
  * Vividness: v1, v2, ...
@@ -14,12 +14,38 @@
  * Lucidity: v1, v2, ...
  * Control: v1, v2, ...
  * Overall: v1, v2, ...
- * Modifiers:
+ * Modifiers: mod1, mod2
  * External: mod1, mod2
- * M-D-YYYY H:MM
- * Tags
+ * YYYY-MM-DD H:MM
+ * ##### Tags
  * [optional tags]
  */
+
+/**
+ * Total quality: pseudo-logarithmic combination of individual dream scores.
+ *
+ * The best dream gets double weight in the mean, then a volume bonus is added
+ * that gives diminishing returns as the dream count doubles:
+ *   bonus(n) = 1 + 0.5 + 0.5 + 0.25 + 0.25 + 0.25 + 0.25 + 0.125 + ...
+ * (each term halves every time the dream count doubles)
+ *
+ * Examples: [7,7]→8, [7,7,7]→8.5, [7,7,7,7]→9, [7,7,7,7,7]→9.25, [6,5,4]→6.75
+ */
+function computeTotalQuality(overallScores) {
+  if (!overallScores.length) return null;
+  const sorted = [...overallScores].sort((a, b) => b - a);
+  const n = sorted.length;
+  const maxScore = sorted[0];
+  const sum = sorted.reduce((a, b) => a + b, 0);
+  // Weighted mean: best dream gets weight 2, others weight 1
+  const weightedMean = (maxScore + sum) / (n + 1);
+  // Volume bonus with diminishing returns
+  let bonus = 0;
+  for (let k = 2; k <= n; k++) {
+    bonus += Math.pow(0.5, Math.floor(Math.log2(k - 1)));
+  }
+  return Math.min(weightedMean + bonus, 10);
+}
 export function parseDreamLog(text, filename = '') {
   const lines = text.split('\n').map(l => l.trimEnd());
   const nonEmpty = (l) => l.trim() !== '';
@@ -149,6 +175,7 @@ export function parseDreamLog(text, filename = '') {
       avgLucidity: avg(metadata.lucidity),
       avgControl: avg(metadata.control),
       avgOverall: avg(metadata.overall),
+      totalQuality: computeTotalQuality(metadata.overall),
       wordCount,
     },
     date: metadata.date,
@@ -178,6 +205,7 @@ export function aggregateLogs(logs) {
     control: log.stats.avgControl != null ? +log.stats.avgControl.toFixed(2) : null,
     overall: log.stats.avgOverall != null ? +log.stats.avgOverall.toFixed(2) : null,
     duration: log.stats.avgDuration != null ? +log.stats.avgDuration.toFixed(2) : null,
+    totalQuality: log.stats.totalQuality != null ? +log.stats.totalQuality.toFixed(2) : null,
     wordCount: log.stats.wordCount,
     filename: log.filename,
   }));
@@ -207,6 +235,7 @@ export function aggregateLogs(logs) {
 
   const totalDreams = sorted.reduce((s, l) => s + l.stats.count, 0);
   const totalWordCount = sorted.reduce((s, l) => s + l.stats.wordCount, 0);
+  const allTotalQuality = sorted.map(l => l.stats.totalQuality).filter(v => v != null);
 
   const radarData = [
     { metric: 'Vividness', value: +avg(allVividness).toFixed(2), max: 10 },
@@ -231,6 +260,7 @@ export function aggregateLogs(logs) {
       avgDuration: +avg(allDuration).toFixed(2),
       totalWordCount,
       avgWordCount: sorted.length ? Math.round(totalWordCount / sorted.length) : 0,
+      avgTotalQuality: allTotalQuality.length ? +avg(allTotalQuality).toFixed(2) : null,
     },
   };
 }
