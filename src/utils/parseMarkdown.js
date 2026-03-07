@@ -21,17 +21,15 @@
  * [optional tags]
  */
 
-// Higher exponent = high-rated dreams dominate more over mediocre ones.
-// 2 = squared, 3 = cubed, etc. Try 3 or 4 for a more "elitist" metric.
-const QUALITY_EXPONENT = 3;
-
 /**
- * Total quality: sum of (score ^ QUALITY_EXPONENT) for all dreams in a log.
- * e.g. with exponent 3: [6, 5, 4] → 216 + 125 + 64 = 405
+ * Total quality: sum of 2^score for all dreams in a log.
+ * Each point higher doubles the contribution: a 9 counts twice as much as an 8,
+ * an 8 twice as much as a 7, etc.
+ * e.g. [9, 8, 7] → 512 + 256 + 128 = 896
  */
 function computeTotalQuality(overallScores) {
   if (!overallScores.length) return null;
-  return overallScores.reduce((sum, s) => sum + s ** QUALITY_EXPONENT, 0);
+  return overallScores.reduce((sum, s) => sum + 2 ** s, 0);
 }
 export function parseDreamLog(text, filename = '') {
   const lines = text.split('\n').map(l => l.trimEnd());
