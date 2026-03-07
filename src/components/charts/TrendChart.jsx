@@ -6,7 +6,7 @@ import {
 
 const METRICS = [
   { key: 'overall',      color: '#a78bfa', label: 'Overall',       yAxis: 'left' },
-  { key: 'totalQuality', color: '#e879f9', label: 'Total Quality', yAxis: 'left' },
+  { key: 'totalQuality', color: '#e879f9', label: 'Total Quality', yAxis: 'right' },
   { key: 'vividness',    color: '#60a5fa', label: 'Vividness',     yAxis: 'left' },
   { key: 'lucidity',     color: '#34d399', label: 'Lucidity',      yAxis: 'left' },
   { key: 'control',      color: '#f472b6', label: 'Control',       yAxis: 'left' },

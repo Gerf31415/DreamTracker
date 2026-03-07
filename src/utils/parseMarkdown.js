@@ -22,29 +22,12 @@
  */
 
 /**
- * Total quality: pseudo-logarithmic combination of individual dream scores.
- *
- * The best dream gets double weight in the mean, then a volume bonus is added
- * that gives diminishing returns as the dream count doubles:
- *   bonus(n) = 1 + 0.5 + 0.5 + 0.25 + 0.25 + 0.25 + 0.25 + 0.125 + ...
- * (each term halves every time the dream count doubles)
- *
- * Examples: [7,7]→8, [7,7,7]→8.5, [7,7,7,7]→9, [7,7,7,7,7]→9.25, [6,5,4]→6.75
+ * Total quality: sum of squared overall scores for all dreams in a log.
+ * e.g. [6, 5, 4] → 36 + 25 + 16 = 77
  */
 function computeTotalQuality(overallScores) {
   if (!overallScores.length) return null;
-  const sorted = [...overallScores].sort((a, b) => b - a);
-  const n = sorted.length;
-  const maxScore = sorted[0];
-  const sum = sorted.reduce((a, b) => a + b, 0);
-  // Weighted mean: best dream gets weight 2, others weight 1
-  const weightedMean = (maxScore + sum) / (n + 1);
-  // Volume bonus with diminishing returns
-  let bonus = 0;
-  for (let k = 2; k <= n; k++) {
-    bonus += Math.pow(0.5, Math.floor(Math.log2(k - 1)));
-  }
-  return Math.min(weightedMean + bonus, 10);
+  return overallScores.reduce((sum, s) => sum + s * s, 0);
 }
 export function parseDreamLog(text, filename = '') {
   const lines = text.split('\n').map(l => l.trimEnd());
